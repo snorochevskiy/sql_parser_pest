@@ -1,0 +1,140 @@
+query = { SOI ~S?
+  ~ (with_block)*
+  ~ select_query
+  ~S?~ EOI
+}
+
+with_block = {
+  ^"with" ~S~ identifier ~S
+  ~ ^"as" ~S~ "(" ~S?~ select_query ~S?~ ")" ~S?
+  ~ "," ~S?
+}
+
+select_query = {
+  select_block
+   ~S~ from_block
+   ~ (S~ where_block)?
+   ~ (S~ window_block)?
+   ~ (S~ groupby_block)?
+   ~ (S~ having_block)?
+   ~ (S~ orderby_block)?
+   ~ (S~ limit_block)?
+   ~S?~ ";"?
+}
+
+select_block = ${ ^"select" ~S~ ( distinct ~S )? ~ col_defs }
+
+from_block = ${ ^"from" ~S~ table ~ (S~ join_block)*}
+
+where_block = { ^"where" ~S~ cond }
+
+window_block = { ^"window" ~S~ identifier ~S~ ^"as" ~S?~ "(" ~S?~ over_part ~S?~ ")" }
+
+groupby_block = { ^"group" ~S~ ^"by" ~S~ identifier ~ ("," ~S?~ identifier)* }
+
+having_block = { ^"having" ~S~ cond }
+
+orderby_block = { ^"order" ~S~ ^"by" ~S~ cols ~ (S~ (^"asc" | ^"desc"))? }
+
+limit_block = { ^"limit" ~S~ num }
+
+join_block = { join_op ~S~ table ~ (S ~ ^"on" ~S~ cond)? }
+
+table = { identifier | "(" ~S?~ select_query ~S?~ ")" }
+
+distinct = { ^"distinct" }
+
+join_op = { ((^"full" | ^"left" | ^"right") ~ S)? ~ ((^"inner" | ^"outer") ~ S)? ~ ^"join" }
+
+cond = {
+  cond_check ~S~ ((^"or" ~S~ cond_check) | (^"and" ~S~ cond_check) )+
+  | cond_check
+}
+
+cond_check = {
+  cond_is_null
+  | cond_is_not_null
+  | cond_like
+  | cond_in
+  | cond_cmp
+  | "(" ~ cond  ~ ")"
+}
+
+cond_is_null = { identifier ~S~ ^"is" ~S~ ^"null" }
+cond_is_not_null = { identifier ~S~ ^"is" ~S~ ^"not" ~S~ ^"null" }
+cond_like = { identifier ~S~ ^"like" ~S?~ str }
+cond_in = { identifier ~S~ ^"in" ~S?~ seq }
+
+cond_between = {
+  identifier ~S~ ^"between" ~S~ num ~S~ ^"and" ~S~ num
+  | identifier ~S~ ^"between" ~S~ str ~S~ ^"and" ~S~ str
+}
+cond_cmp = {
+  expr ~S?~ op_cmp ~S?~ expr
+  | func_call
+}
+
+seq = {
+  "(" ~S?~ (num) ~ ( S? ~ ","  ~S?~ (num))* ~S?~ ")" 
+  | "(" ~S?~ (str) ~ ( S? ~ ","  ~S?~ (str))* ~S?~ ")" 
+}
+
+op_cmp = { "=" | "<>" | "!=" | "<" | "<=" | ">" | ">=" }
+op_calc = { "+" | "-" | "*" | "/" | "%" }
+
+expr = {
+  expr_calc ~ ( S?~ op_calc ~S?~ expr_calc)+
+  | expr_calc
+}
+
+expr_calc = {
+  "(" ~ expr ~ ")"
+  | func_call | num | str | bool | identifier
+}
+
+num = ${ ("+" | "-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)* }
+str = ${ "'" ~ chars ~ "'" }
+chars = @{ char* }
+char = { !"'" ~ ANY }
+bool = { "true" | "false" }
+
+col_defs = { col_def ~ ("," ~S?~ col_def)* }
+col_def = {
+  col ~ (S~ ^"as")? ~S~ identifier
+  | col
+}
+cols = { col ~ ("," ~S?~ col)* }
+col = { window_func_call | func_call | identifier }
+
+func_call = { identifier_name ~S?~ args }
+args = { "(" ~S?~ arg ~ (S?~ "," ~S?~ arg)* ~ ")" }
+arg = {
+  col | expr_calc
+}
+
+window_func_call = {
+  expr_calc ~S~ ^"over" ~S?~ "(" ~S?~ over_part ~S?~ ")"
+  | expr_calc ~S~ ^"over" ~S?~ identifier
+}
+over_part = {
+  (partition_by ~S~ orderby_block | partition_by | orderby_block) ~ (S~ window_between_part)?
+}
+partition_by = { ^"partition" ~S~ ^"by" ~S~ cols }
+window_between_part = {
+  (^"rows" | ^"range") ~S~ ^"between" ~S~ row_shift ~S~ ^"and" ~S~ row_shift
+  | (^"rows" | ^"range") ~S~ row_shift
+}
+row_shift = {
+  ^"unbounded" ~S~ ^"preceding"
+  | ^"unbounded" ~S~ ^"following"
+  | ^"current" ~S~ ^"row"
+  | num ~S~ (^"preceding" | ^"following")
+}
+
+identifiers = { identifier ~ ("," ~S?~ identifier)* }
+identifier = ${ (identifier_name | identifier_quoted) ~ (S?~ "." ~S?~ (identifier_name | identifier_quoted))* }
+identifier_quoted = { "`" ~ (!"`" ~ ANY)* ~ "`"}
+identifier_name = ${ ASCII_ALPHA ~ (ASCII_ALPHA | ASCII_DIGIT | "_")* }
+
+S = _{ ( " " | NEWLINE)+ }
+// WHITESPACE = _{ " " }

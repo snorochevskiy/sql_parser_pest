@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<queries>
+    <with-queries>
+        <with-query>
+            <name>country</name>
+            <dbName>my_db</dbName>>
+            <sql><![CDATA[select * from countries]]></sql>
+        </with-query>
+    </with-queries>
+    <final-query>
+        <sql><![CDATA[select * from products join country on product.country_id = country.id]]></sql>
+    </final-query>
+</queries>
