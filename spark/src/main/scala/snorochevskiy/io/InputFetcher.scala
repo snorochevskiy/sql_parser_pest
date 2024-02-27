@@ -7,15 +7,18 @@ import snorochevskiy.util.Bracket
 
 import java.net.URI
 import java.nio.charset.Charset
+import scala.beans.BeanProperty
 import scala.io.Source
 
 
 case class JobInput(
-  withBlocks: Seq[WithBlock],
-  finalSql: String,
-)
+  @BeanProperty var withBlocks: Seq[WithBlock],
+  @BeanProperty var finalSql: String,
+) {
+  def this() = this(null,null)
+}
 
-case class WithBlock(dbName: String, name: String, sql: String)
+case class WithBlock(dbName: String, withViewName: String, sql: String)
 
 object InputFetcher {
 
@@ -30,20 +33,20 @@ object InputFetcher {
         source.mkString
       }
     } else {
-      throw new IllegalAccessException("Not supported URL type")
+      throw new IllegalArgumentException("Not supported URL type")
     }
 
-    parseJobInput(text)
+    parseQuery(text)
   }
 
-  def parseJobInput(xmlText: String): JobInput = {
+  def parseQuery(xmlText: String): JobInput = {
     import scala.language.postfixOps
 
     val xml = scala.xml.XML.loadString(xmlText)
-    val withBlocks = xml \\ "queries" \\ "with-queries" map { node =>
-      WithBlock(dbName = node \\ "dbName" text, name = node \\ "name" text, sql = node \\ "sql"  text)
+    val withBlocks = xml \\ "queries" \\ "withQueries" map { node =>
+      WithBlock(dbName = node \\ "dbName" text, withViewName = node \\ "withViewName" text, sql = node \\ "sql"  text)
     }
-    val finalQuery = (xml \\ "queries" \\ "final-query" \\ "sql").head.text
+    val finalQuery = (xml \\ "queries" \\ "finalQuery" \\ "sql").head.text
 
     JobInput(withBlocks, finalQuery)
   }

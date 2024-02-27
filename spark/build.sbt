@@ -5,7 +5,7 @@ name := "FederatedQueryExecutor"
 Test / parallelExecution := false
 Test / javaOptions ++= Seq("-XX:+UseG1GC")
 
-version := "1.0"
+version := "0.2"
 
 scalaVersion := "2.12.15"
 

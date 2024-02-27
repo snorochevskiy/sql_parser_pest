@@ -29,7 +29,7 @@ object Bracket {
       }
     }
 
-  def withCloseable[A <: Closeable, B <: Closeable, C](initA: => A, initB: => B)(f: (A,B) => C): C = {
+  def withBiCloseable[A <: Closeable, B <: Closeable, C](initA: => A, initB: => B)(f: (A,B) => C): C = {
     val a = initA
     val b = initB
     try {

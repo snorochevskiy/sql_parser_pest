@@ -1,23 +1,18 @@
 package snorochevskiy.jobs
 
 import snorochevskiy.config.ConfigProvider
-import snorochevskiy.flow.FederatedQueryExecutor
+import snorochevskiy.flow.{FederatedQueryExecutor, QueryInstruction}
 import snorochevskiy.spark.SparkProvider
 
-case class QueryInstruction(
-  input: String,
-  output: String,
-  format: String,
-)
 
-object SqlExecutionJob extends SparkProvider {
+object CliSqlExecutionJob extends SparkProvider {
 
   def main(args: Array[String]): Unit = {
     val instruction = parseArgs(args)
 
     implicit val cfg = ConfigProvider.loadAppConf()
 
-    FederatedQueryExecutor.exec(instruction)
+    FederatedQueryExecutor.execInstruction(instruction)
   }
 
   def parseArgs(args: Array[String]): QueryInstruction = {
